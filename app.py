@@ -4,8 +4,7 @@ from ml.facial_cnn import FacialCnn
 
 app = Flask(__name__)
 
-#https://pythonbasics.org/flask-tutorial-routes/
-#https://realpython.com/python-profiling/
+
 @app.route("/predict/image/<directory>/<image_file>") 
 def predict(directory, image_file):
     
