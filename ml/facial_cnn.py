@@ -1,5 +1,7 @@
 class FacialCnn:
         def __init__(self) -> None:
+                
+
                 pass                
         def train():        
 # Deep Learning CNN model to recognize face
@@ -9,6 +11,9 @@ class FacialCnn:
                 '''####### IMAGE PRE-PROCESSING for TRAINING and TESTING data #######'''
 
                 # Specifying the folder where images are present
+                import time
+                StartTime=time.time()
+
                 TrainingImagePath='Final Training Images'
 
                 from keras.preprocessing.image import ImageDataGenerator
@@ -75,67 +80,80 @@ class FacialCnn:
                 from keras.layers import Flatten
                 from keras.layers import Dense
 
-                '''Initializing the Convolutional Neural Network'''
+                '''Initializing the neural network'''
                 classifier= Sequential()
 
-                ''' STEP--1 Convolution
-                # Adding the first layer of CNN
-                # we are using the format (64,64,3) because we are using TensorFlow backend
-                # It means 3 matrix of size (64X64) pixels representing Red, Green and Blue components of pixels
-                '''
                 classifier.add(Convolution2D(32, kernel_size=(5, 5), strides=(1, 1), input_shape=(64,64,3), activation='relu'))
 
-                '''# STEP--2 MAX Pooling'''
+                
                 classifier.add(MaxPool2D(pool_size=(2,2)))
 
-                '''############## ADDITIONAL LAYER of CONVOLUTION for better accuracy #################'''
+                
                 classifier.add(Convolution2D(64, kernel_size=(5, 5), strides=(1, 1), activation='relu'))
 
                 classifier.add(MaxPool2D(pool_size=(2,2)))
 
-                '''# STEP--3 FLattening'''
+                
                 classifier.add(Flatten())
 
-                '''# STEP--4 Fully Connected Neural Network'''
+                
                 classifier.add(Dense(64, activation='relu'))
 
                 classifier.add(Dense(OutputNeurons, activation='softmax'))
 
-                '''# Compiling the CNN'''
-                #classifier.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+                
+                
                 classifier.compile(loss='categorical_crossentropy', optimizer = 'adam', metrics=["accuracy"])
 
-                ###########################################################
-                import time
-                # Measuring the time taken by the model to train
-                StartTime=time.time()
-
-                # Starting the model training
-                classifier.fit_generator(
+                history = classifier.fit_generator(
                                 training_set,
                                 steps_per_epoch=8,
                                 epochs=10,
                                 validation_data=test_set,
                                 validation_steps=10)
-
+                
+                classifier.save('model.h5')
+                
                 EndTime=time.time()
-                print("###### Total Time Taken: ", round((EndTime-StartTime)/60), 'Minutes ######')
+                last_accuracy = history.history['accuracy'][-1]
+
+                time = "###### Total Time Taken: " + str(EndTime-StartTime) + ' seconds ######\n'
+                accuracy = "###### Accuracy: " + str(last_accuracy)
+
+                time = EndTime-StartTime
+                accuracy = last_accuracy
+                return {"time": time, "accuracy": accuracy}
+
+        def predict(directory, image_file):
 
                 '''########### Making single predictions ###########'''
                 import numpy as np
                 from keras.utils import load_img as image
                 from keras.utils import img_to_array as img_to_array
+                from keras.models import load_model
+                import pickle
+                import time as time
 
-                ImagePath='Final Testing Images/face4/3face4.jpg'
+                StartTime=time.time()
+
+                classifier = load_model('model.h5')
+                ResultMap={}
+                with open("ResultsMap.pkl", 'rb') as fileReadStream:
+                        ResultMap = pickle.load(fileReadStream)
+
+                ImagePath='Final Testing Images/'+directory+'/'+image_file
                 test_image=image(ImagePath,target_size=(64, 64))
                 test_image=img_to_array(test_image)
 
                 test_image=np.expand_dims(test_image,axis=0)
 
                 result=classifier.predict(test_image,verbose=0)
+                
+                predicted_class = np.argmax(result, axis=1)
+                predicted_accuracy = result[0][predicted_class[0]]
                 #print(training_set.class_indices)
+                
+                EndTime=time.time()
 
-                print('####'*10)
-                print('Prediction is: ',ResultMap[np.argmax(result)])
-
-                return ResultMap[np.argmax(result)];
+                return "Predicted face is: "+ResultMap[np.argmax(result)]+" with accuracy of " + str(predicted_accuracy) +" and time to predict of " + str(EndTime-StartTime)
+                
